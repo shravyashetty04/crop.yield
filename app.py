@@ -170,44 +170,58 @@ def get_models():
 
 @app.route('/api/predict', methods=['POST'])
 def predict():
-    """Make predictions using selected model"""
     try:
-        data = request.json
-        model_name = data.get('model', 'RandomForest')
-        
-        # Extract features
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'error': 'No input data provided'}), 400
+
+        # Extract and normalize model name
+        model_input = data.get('model', 'Random Forest')
+        model_map = {
+            'Random Forest': 'RandomForest',
+            'Decision Tree': 'DecisionTree',
+            'Gradient Boosting': 'GradientBoosting',
+            'SVM': 'SVM'
+        }
+        model_name = model_map.get(model_input.strip(), model_input.strip())
+
+        if model_name not in models:
+            return jsonify({'error': f"Model '{model_input}' not found"}), 400
+
+        # Ensure all inputs are received
         rainfall = float(data.get('rainfall', 0))
         pesticides = float(data.get('pesticides', 0))
         temperature = float(data.get('temperature', 0))
-        
-        # Create feature array (for simple version with 3 features)
-        if len(features_columns) == 3:
-            features = np.array([[rainfall, pesticides, temperature]])
-        else:
-            # For more complex version, you'd need to handle one-hot encoded features
-            # This is a simplified version
-            features = np.array([[rainfall, pesticides, temperature]])
-        
-        # Scale features
-        features_scaled = scaler.transform(features)
-        
-        # Get selected model
-        if model_name not in models:
-            return jsonify({'error': 'Model not found'}), 400
-        
-        model = models[model_name]['model']
-        
+
+        # Prepare input
+        input_dict = {
+            'average_rain_fall_mm_per_year': rainfall,
+            'pesticides_tonnes': pesticides,
+            'avg_temp': temperature
+        }
+
+        # Make sure all expected features are present
+        input_full = []
+        for col in features_columns:
+            input_full.append(input_dict.get(col, 0))  # Put 0 for one-hot columns etc.
+
+        input_scaled = scaler.transform([input_full])
+
         # Make prediction
-        prediction = model.predict(features_scaled)[0]
-        
+        model = models[model_name]['model']
+        prediction = model.predict(input_scaled)[0]
+
         return jsonify({
             'prediction': round(prediction, 2),
             'model_used': model_name,
             'model_r2_score': round(models[model_name]['r2_score'], 4)
         })
-        
+
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': f"Failed to make prediction: {str(e)}"}), 500
+
+
 
 @app.route('/api/analyze', methods=['POST'])
 def analyze_data():
