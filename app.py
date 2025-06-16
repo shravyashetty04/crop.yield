@@ -76,19 +76,24 @@ def load_and_train_models():
         model_configs = {
             'GradientBoosting': GradientBoostingRegressor(n_estimators=200, max_depth=3, random_state=0),
             'RandomForest': RandomForestRegressor(n_estimators=200, max_depth=3, random_state=0),
-            'SVM': svm.SVR(),
-            'DecisionTree': DecisionTreeRegressor()
+            'SVM': svm.SVR(kernel='rbf', C=1.0, gamma='scale', max_iter=1000),  # Limit iterations for faster training
+            'DecisionTree': DecisionTreeRegressor(random_state=0)
         }
         
         for name, model in model_configs.items():
-            model.fit(train_data, train_labels)
-            y_pred = model.predict(test_data)
-            r2 = r2_score(test_labels, y_pred)
-            models[name] = {
-                'model': model,
-                'r2_score': r2
-            }
-            print(f"{name} R2 Score: {r2}")
+            try:
+                print(f"Training {name}...")
+                model.fit(train_data, train_labels)
+                y_pred = model.predict(test_data)
+                r2 = r2_score(test_labels, y_pred)
+                models[name] = {
+                    'model': model,
+                    'r2_score': r2
+                }
+                print(f"{name} R2 Score: {r2}")
+            except Exception as e:
+                print(f"Failed to train {name}: {e}")
+                # Continue with other models
         
         return True
     except Exception as e:
@@ -129,19 +134,24 @@ def create_sample_data():
     model_configs = {
         'GradientBoosting': GradientBoostingRegressor(n_estimators=100, max_depth=3, random_state=0),
         'RandomForest': RandomForestRegressor(n_estimators=100, max_depth=3, random_state=0),
-        'SVM': svm.SVR(),
-        'DecisionTree': DecisionTreeRegressor()
+        'SVM': svm.SVR(kernel='rbf', C=1.0, gamma='scale', max_iter=1000),  # Limit iterations
+        'DecisionTree': DecisionTreeRegressor(random_state=0)
     }
     
     for name, model in model_configs.items():
-        model.fit(train_data, train_labels)
-        y_pred = model.predict(test_data)
-        r2 = r2_score(test_labels, y_pred)
-        models[name] = {
-            'model': model,
-            'r2_score': r2
-        }
-        print(f"{name} R2 Score: {r2}")
+        try:
+            print(f"Training {name}...")
+            model.fit(train_data, train_labels)
+            y_pred = model.predict(test_data)
+            r2 = r2_score(test_labels, y_pred)
+            models[name] = {
+                'model': model,
+                'r2_score': r2
+            }
+            print(f"{name} R2 Score: {r2}")
+        except Exception as e:
+            print(f"Failed to train {name}: {e}")
+            # Continue with other models
 
 @app.route('/')
 def index():
